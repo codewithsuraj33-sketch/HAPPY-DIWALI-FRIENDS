@@ -1,5 +1,7 @@
-// Clean single-file script.js implementation
+// Clean single-file script.js implementation — final consolidated version
 (function () {
+  'use strict';
+
   const canvas = document.getElementById('c');
   if (!canvas) throw new Error("Canvas element with id 'c' not found.");
   const ctx = canvas.getContext('2d');
@@ -57,6 +59,61 @@
   let quoteActive = false;
   let quoteStart = 0;
   let quoteTimer = null;
+  // control whether letter glyphs (HAPPY / DIWALI FRIENDS) are drawn
+  let drawLetterGlyphs = true;
+
+  // Audio helpers: speech synthesis and small WebAudio firework sound
+  let audioCtx = null;
+  function ensureAudio() {
+    if (audioCtx) return audioCtx;
+    const C = window.AudioContext || window.webkitAudioContext;
+    if (!C) return null;
+    audioCtx = new C();
+    return audioCtx;
+  }
+
+  let lastSpoken = 0;
+  function speakText(text) {
+    if (!('speechSynthesis' in window)) return;
+    // debounce speech for 6s
+    const now = performance.now();
+    if (now - lastSpoken < 6000) return;
+    lastSpoken = now;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-GB';
+      u.rate = 0.95;
+      u.pitch = 1.0;
+      window.speechSynthesis.speak(u);
+    } catch (e) {
+      console.warn('speech failed', e);
+    }
+  }
+
+  function playFireworkSound() {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    // noise burst
+    const dur = 0.18;
+    const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; ++i) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, now); ng.gain.exponentialRampToValueAtTime(0.6, now + 0.01); ng.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(50, now + dur);
+    const og = ctx.createGain(); og.gain.setValueAtTime(0.0001, now); og.gain.exponentialRampToValueAtTime(0.45, now + 0.01); og.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    const master = ctx.createGain(); master.gain.value = 0.6;
+    src.connect(ng).connect(master);
+    osc.connect(og).connect(master);
+    master.connect(ctx.destination);
+
+    src.start(now); src.stop(now + dur);
+    osc.start(now); osc.stop(now + dur);
+  }
 
   const friendImgs = [];
   (function preload() {
@@ -99,7 +156,8 @@
     ctx.scale(DPR, DPR);
     w = cssW; h = cssH; hw = w/2; hh = h/2;
     ctx.font = opts.charSize + 'px Verdana';
-    calc.totalWidth = opts.charSpacing * Math.max.apply(null, opts.strings.map(function(s){ return s.length; }));
+    const longest = Math.max.apply(null, opts.strings.map(function(s){ return s.length; }));
+    calc.totalWidth = opts.charSpacing * longest;
   }
 
   function hueForX(x) {
@@ -150,13 +208,13 @@
       }
     } else if (this.phase === 'contemplate'){
       ++this.tick; if (this.circleCreating){ ++this.tick2; var proportion = this.tick2 / Math.max(1, this.circleCompleteTime); var armonic = -Math.cos(proportion * Math.PI)/2 + 0.5; ctx.beginPath(); ctx.fillStyle = this.lightAlpha(40 + 60 * proportion, proportion); ctx.arc(this.x, this.y, armonic * this.circleFinalSize, 0, Tau); ctx.fill(); if (this.tick2 > this.circleCompleteTime){ this.tick2 = 0; this.circleCreating = false; this.circleFading = true; } }
-      else if (this.circleFading){ ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = 'rgba(255,200,110,0.9)'; ctx.fillStyle = this.lightColor(76); ctx.fillText(this.char, this.x + this.dx, this.y + this.dy); ctx.restore(); ++this.tick2; var proportion2 = this.tick2 / Math.max(1, this.circleFadeTime); var armonic2 = -Math.cos(proportion2 * Math.PI)/2 + 0.5; ctx.beginPath(); ctx.fillStyle = this.lightAlpha(100, 1 - armonic2); ctx.arc(this.x, this.y, this.circleFinalSize, 0, Tau); ctx.fill(); if (this.tick2 >= this.circleFadeTime) this.circleFading = false; }
-      else { ctx.save(); ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(255,190,80,0.85)'; ctx.fillStyle = this.lightColor(72); ctx.fillText(this.char, this.x + this.dx, this.y + this.dy); ctx.restore(); }
+      else if (this.circleFading){ ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = 'rgba(255,200,110,0.9)'; ctx.fillStyle = this.lightColor(76); if (drawLetterGlyphs) ctx.fillText(this.char, this.x + this.dx, this.y + this.dy); ctx.restore(); ++this.tick2; var proportion2 = this.tick2 / Math.max(1, this.circleFadeTime); var armonic2 = -Math.cos(proportion2 * Math.PI)/2 + 0.5; ctx.beginPath(); ctx.fillStyle = this.lightAlpha(100, 1 - armonic2); ctx.arc(this.x, this.y, this.circleFinalSize, 0, Tau); ctx.fill(); if (this.tick2 >= this.circleFadeTime) this.circleFading = false; }
+      else { ctx.save(); ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(255,190,80,0.85)'; ctx.fillStyle = this.lightColor(72); if (drawLetterGlyphs) ctx.fillText(this.char, this.x + this.dx, this.y + this.dy); ctx.restore(); }
       for (var j=0;j<this.shards.length;++j){ this.shards[j].step(); if (!this.shards[j].alive){ this.shards.splice(j,1); --j; } }
       if (this.tick > opts.letterContemplatingWaitTime){ this.phase = 'balloon'; this.tick = 0; this.spawning = true; this.spawnTime = Math.floor(opts.balloonSpawnTime * Math.random()); this.inflating = false; this.inflateTime = Math.floor(opts.balloonBaseInflateTime + opts.balloonAddedInflateTime * Math.random()); this.size = Math.floor(opts.balloonBaseSize + opts.balloonAddedSize * Math.random()); var rad = opts.balloonBaseRadian + opts.balloonAddedRadian * Math.random(); var vel = opts.balloonBaseVel + opts.balloonAddedVel * Math.random(); this.vx = Math.cos(rad) * vel; this.vy = Math.sin(rad) * vel; this.cx = this.x; this.cy = this.y; }
     } else if (this.phase === 'balloon'){
       ctx.strokeStyle = this.lightColor(82); ctx.lineWidth = 1.2;
-      if (this.spawning){ ++this.tick; ctx.fillStyle = this.lightColor(72); ctx.fillText(this.char, this.x + this.dx, this.y + this.dy); if (this.tick >= this.spawnTime){ this.tick = 0; this.spawning = false; this.inflating = true; } }
+      if (this.spawning){ ++this.tick; ctx.fillStyle = this.lightColor(72); if (drawLetterGlyphs) ctx.fillText(this.char, this.x + this.dx, this.y + this.dy); if (this.tick >= this.spawnTime){ this.tick = 0; this.spawning = false; this.inflating = true; } }
       else if (this.inflating){ ++this.tick; var proportion3 = this.tick / Math.max(1, this.inflateTime); var x2 = (this.cx = this.x); var y2 = (this.cy = this.y - this.size * proportion3); ctx.fillStyle = this.alphaColor(proportion3 * 0.9); ctx.beginPath(); generateBalloonPath(ctx, x2, y2, this.size * proportion3); ctx.fill(); ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2, this.y); ctx.stroke(); ctx.fillStyle = this.lightColor(70); ctx.fillText(this.char, this.x + this.dx, this.y + this.dy); if (this.tick >= this.inflateTime){ this.tick = 0; this.inflating = false; } }
       else { this.cx += this.vx; this.cy += (this.vy += opts.upFlow); ctx.fillStyle = this.color; ctx.beginPath(); generateBalloonPath(ctx, this.cx, this.cy, this.size); ctx.fill(); ctx.beginPath(); ctx.moveTo(this.cx, this.cy); ctx.lineTo(this.cx, this.cy + this.size); ctx.stroke(); ctx.fillStyle = this.lightColor(76); ctx.fillText(this.char, this.cx + this.dx, this.cy + this.dy + this.size); if (this.cy + this.size < -hh - 120 || this.cx < -hw - 120 || this.cx > hw + 120) this.phase = 'done'; }
     }
@@ -167,9 +225,155 @@
 
   function generateBalloonPath(ctx,x,y,size){ ctx.moveTo(x,y); ctx.bezierCurveTo(x-size/2,y-size/2,x-size/4,y-size,x,y-size); ctx.bezierCurveTo(x+size/4,y-size,x+size/2,y-size/2,x,y); }
 
-  function createLetters(){ letters.length = 0; var rows = opts.strings.length; var longest = Math.max.apply(null, opts.strings.map(function(s){ return s.length; })); calc.totalWidth = opts.charSpacing * longest; var blockHeight = opts.lineHeight * rows; for (var r=0;r<rows;++r){ var str = opts.strings[r]; var rowWidth = opts.charSpacing * str.length; var xOffset = -rowWidth/2 + opts.charSpacing/2; var y = r * opts.lineHeight + opts.lineHeight/2 - blockHeight/2; for (var c=0;c<str.length;++c){ var x = xOffset + c * opts.charSpacing; letters.push(new Letter(str[c], x, y)); } } }
+  function createFireworks(count){
+    // play firework sound
+    try { playFireworkSound(); } catch(e){}
+    letters.length = 0;
+    count = count || 20;
+    for(var i=0; i<count; ++i) {
+      var x = (Math.random() - 0.5) * w * 0.7;
+      var y = (Math.random() - 0.5) * h * 0.7;
+      letters.push(new Letter('', x, y));
+    }
+  }
 
-  function animate(){ window.requestAnimationFrame(animate); ctx.save(); ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle = '#0c0610'; ctx.fillRect(0,0,canvas.width/DPR,canvas.height/DPR); var g = ctx.createRadialGradient(hw,hh,0,hw,hh,Math.max(w,h)*0.9); g.addColorStop(0,'rgba(255,190,80,0.06)'); g.addColorStop(0.25,'rgba(255,160,60,0.03)'); g.addColorStop(1,'rgba(0,0,0,0.6)'); ctx.fillStyle = g; ctx.fillRect(0,0,canvas.width/DPR,canvas.height/DPR); ctx.restore(); ctx.save(); ctx.translate(hw,hh); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.font = opts.charSize + 'px Verdana'; var allDone = true; for (var i=0;i<letters.length;++i){ letters[i].step(); if (letters[i].phase !== 'done') allDone = false; } ctx.restore(); if (allDone){ if (!quoteActive){ quoteActive = true; quoteStart = performance.now(); quoteTimer = setTimeout(function(){ quoteActive = false; quoteTimer = null; for (var k=0;k<letters.length;++k) letters[k].reset(); }, opts.quoteDuration); } } if (quoteActive){ var elapsed = performance.now() - quoteStart; ctx.save(); ctx.translate(hw,hh); ctx.fillStyle = 'rgba(255,240,210,0.96)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '20px Verdana'; var maxWidth = Math.max(200, Math.min(w*0.8,900)); var words = opts.quoteText.split(' '); var lines = []; var ln = ''; for (var m=0;m<words.length;++m){ var test = ln ? ln + ' ' + words[m] : words[m]; if (ctx.measureText(test).width > maxWidth && ln){ lines.push(ln); ln = words[m]; } else ln = test; } if (ln) lines.push(ln); var lineHeight = 26; var totalH = lines.length * lineHeight; var startY = -totalH/2 - 20; ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 12; for (var ii=0; ii<lines.length; ++ii) ctx.fillText(lines[ii], 0, startY + ii * lineHeight); var names = opts.friendNames || []; if (names.length > 0){ var seg = opts.quoteDuration / names.length; var idx = Math.min(names.length-1, Math.floor(elapsed / Math.max(1, seg))); var name = names[idx]; ctx.font = opts.charSize + 'px Verdana'; ctx.fillStyle = 'rgba(255,245,220,0.98)'; ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 14; var nameY = startY + totalH + 24 + (opts.charSize/2); ctx.fillText(name, 0, nameY); var img = friendImgs[idx]; if (img && img.complete){ var rawSize = Math.floor(opts.charSize * (opts.friendPhotoScale || 1.2)); var photoSize = Math.min(opts.friendPhotoMax || 120, Math.max(opts.friendPhotoMin || 72, rawSize)); var photoY = startY - photoSize - 12; ctx.save(); ctx.beginPath(); ctx.arc(0, photoY + photoSize/2, photoSize/2, 0, Tau); ctx.closePath(); ctx.clip(); ctx.drawImage(img, -photoSize/2, photoY, photoSize, photoSize); ctx.restore(); ctx.beginPath(); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.arc(0, photoY + photoSize/2, photoSize/2, 0, Tau); ctx.stroke(); } } ctx.restore(); } }
+  function createLetters(){
+    // speak the greeting when letters appear
+    try { speakText('Happy Diwali friends'); } catch(e){}
+    letters.length = 0;
+    var rows = opts.strings.length;
+    var longest = Math.max.apply(null, opts.strings.map(function(s){ return s.length; }));
+    calc.totalWidth = opts.charSpacing * longest;
+    var blockHeight = opts.lineHeight * rows;
+    for (var r = 0; r < rows; ++r){
+      var str = opts.strings[r];
+      var rowWidth = opts.charSpacing * str.length;
+      var xOffset = -rowWidth/2 + opts.charSpacing/2;
+      var y = r * opts.lineHeight + opts.lineHeight/2 - blockHeight/2;
+      for (var c = 0; c < str.length; ++c){
+        var x = xOffset + c * opts.charSpacing;
+        letters.push(new Letter(str[c], x, y));
+      }
+    }
+  }
+
+  function animate() {
+    window.requestAnimationFrame(animate);
+
+    // clear and background (CSS px)
+    ctx.save();
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0c0610';
+    ctx.fillRect(0, 0, canvas.width / DPR, canvas.height / DPR);
+
+    // radial glow
+    var g = ctx.createRadialGradient(hw, hh, 0, hw, hh, Math.max(w, h) * 0.9);
+    g.addColorStop(0, 'rgba(255,190,80,0.06)');
+    g.addColorStop(0.25, 'rgba(255,160,60,0.03)');
+    g.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width / DPR, canvas.height / DPR);
+    ctx.restore();
+
+    // draw letters/particles in centered coords
+    ctx.save();
+    ctx.translate(hw, hh);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.font = opts.charSize + 'px Verdana';
+
+    var allDone = true;
+    for (var i = 0; i < letters.length; ++i) {
+      letters[i].step();
+      if (letters[i].phase !== 'done') allDone = false;
+    }
+    ctx.restore();
+
+    // When all letters have completed, show the quote overlay — but keep only fireworks visible
+    if (allDone) {
+      if (!quoteActive) {
+        quoteActive = true;
+        quoteStart = performance.now();
+        // hide the HAPPY/DIWALI FRIEND glyphs while the quote is visible
+        drawLetterGlyphs = false;
+        // start fireworks under the quote
+        createFireworks(24);
+        if (quoteTimer) clearTimeout(quoteTimer);
+        // when the quote duration finishes, stop the quote and restart the full animation from the beginning
+        quoteTimer = setTimeout(function () {
+          quoteActive = false;
+          quoteTimer = null;
+          // restart entire animation sequence from the start
+          drawLetterGlyphs = true;
+          createLetters();
+        }, opts.quoteDuration);
+      }
+    }
+
+    // draw quote overlay if active
+    if (quoteActive) {
+      var elapsed = performance.now() - quoteStart;
+      ctx.save();
+      ctx.translate(hw, hh);
+      ctx.fillStyle = 'rgba(255,240,210,0.96)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '20px Verdana';
+      var maxWidth = Math.max(200, Math.min(w * 0.8, 900));
+      var words = opts.quoteText.split(' ');
+      var lines = [];
+      var ln = '';
+      for (var m = 0; m < words.length; ++m) {
+        var test = ln ? ln + ' ' + words[m] : words[m];
+        if (ctx.measureText(test).width > maxWidth && ln) {
+          lines.push(ln);
+          ln = words[m];
+        } else ln = test;
+      }
+      if (ln) lines.push(ln);
+
+      var lineHeight = 26;
+      var totalH = lines.length * lineHeight;
+      var startY = -totalH / 2 - 20;
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 12;
+      for (var ii = 0; ii < lines.length; ++ii) ctx.fillText(lines[ii], 0, startY + ii * lineHeight);
+
+      var names = opts.friendNames || [];
+      if (names.length > 0) {
+        var seg = opts.quoteDuration / names.length;
+        var idx = Math.min(names.length - 1, Math.floor(elapsed / Math.max(1, seg)));
+        var name = names[idx];
+        ctx.font = opts.charSize + 'px Verdana';
+        ctx.fillStyle = 'rgba(255,245,220,0.98)';
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 14;
+        var nameY = startY + totalH + 24 + opts.charSize / 2;
+        ctx.fillText(name, 0, nameY);
+
+        var img = friendImgs[idx];
+        if (img && img.complete) {
+          var rawSize = Math.floor(opts.charSize * (opts.friendPhotoScale || 1.2));
+          var photoSize = Math.min(opts.friendPhotoMax || 120, Math.max(opts.friendPhotoMin || 72, rawSize));
+          var photoY = startY - photoSize - 12;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(0, photoY + photoSize / 2, photoSize / 2, 0, Tau);
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(img, -photoSize / 2, photoY, photoSize, photoSize);
+          ctx.restore();
+          ctx.beginPath();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+          ctx.arc(0, photoY + photoSize / 2, photoSize / 2, 0, Tau);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+  }
 
   // setup
   setSize();
