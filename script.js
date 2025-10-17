@@ -6,6 +6,20 @@
   if (!canvas) throw new Error("Canvas element with id 'c' not found.");
   const ctx = canvas.getContext('2d');
 
+  const backgroundMusic = document.getElementById('background-music');
+  const musicToggle = document.getElementById('music-toggle');
+  if (musicToggle) {
+    musicToggle.addEventListener('click', () => {
+      if (backgroundMusic.paused) {
+        backgroundMusic.play();
+        musicToggle.textContent = 'Pause Music';
+      } else {
+        backgroundMusic.pause();
+        musicToggle.textContent = 'Play Music';
+      }
+    });
+  }
+
   const opts = {
     strings: ['HAPPY', 'DIWALI FRIENDS'],
     quoteText: '✨ “May this Diwali light up our friendship with joy, laughter, and endless memories. Wishing you a sparkling and happy Diwali, my friend!” 🪔💛',
@@ -59,8 +73,10 @@
   let quoteActive = false;
   let quoteStart = 0;
   let quoteTimer = null;
+   let quoteAlpha = 0; // for fade in/out of quote overlay (0..1)
   // control whether letter glyphs (HAPPY / DIWALI FRIENDS) are drawn
   let drawLetterGlyphs = true;
+   let isMuted = false;
 
   // Audio helpers: speech synthesis and small WebAudio firework sound
   let audioCtx = null;
@@ -74,6 +90,7 @@
 
   let lastSpoken = 0;
   function speakText(text) {
+     if (isMuted) return;
     if (!('speechSynthesis' in window)) return;
     // debounce speech for 6s
     const now = performance.now();
@@ -92,7 +109,8 @@
   }
 
   function playFireworkSound() {
-    const ctx = ensureAudio();
+     if (isMuted) return;
+     const ctx = ensureAudio();
     if (!ctx) return;
     const now = ctx.currentTime;
     // noise burst
@@ -133,7 +151,7 @@
         '/friends/' + enc,
         '/friends/' + raw
       ];
-      (function tryLoad(idx) {
+       (function tryLoad(idx) {
         if (idx >= candidates.length) { friendImgs[i] = null; console.warn('Friend image not found for', names[i]); return; }
         const url = candidates[idx];
         const img = new Image();
@@ -143,6 +161,20 @@
       })(0);
     }
   })();
+
+   // Wait for images to load (with timeout) before starting; show preloader until ready
+   function waitForImages(timeoutMs) {
+     return new Promise((resolve) => {
+       const start = performance.now();
+       function check() {
+         const allTried = friendImgs.every(function (v, i) { return v === null || (v && v.complete); });
+         if (allTried) return resolve(true);
+         if (performance.now() - start > (timeoutMs || 3500)) return resolve(false);
+         setTimeout(check, 120);
+       }
+       check();
+     });
+   }
 
   function setSize() {
     DPR = Math.max(window.devicePixelRatio || 1, 1);
@@ -291,35 +323,38 @@
     ctx.restore();
 
     // When all letters have completed, show the quote overlay — but keep only fireworks visible
-    if (allDone) {
-      if (!quoteActive) {
-        quoteActive = true;
-        quoteStart = performance.now();
-        // hide the HAPPY/DIWALI FRIEND glyphs while the quote is visible
-        drawLetterGlyphs = false;
-        // start fireworks under the quote
-        createFireworks(24);
-        if (quoteTimer) clearTimeout(quoteTimer);
-        // when the quote duration finishes, stop the quote and restart the full animation from the beginning
-        quoteTimer = setTimeout(function () {
-          quoteActive = false;
-          quoteTimer = null;
-          // restart entire animation sequence from the start
-          drawLetterGlyphs = true;
-          createLetters();
-        }, opts.quoteDuration);
-      }
+    if (allDone && !quoteActive) {
+      quoteActive = true;
+      quoteStart = performance.now();
+      // hide the HAPPY/DIWALI FRIEND glyphs while the quote is visible
+      drawLetterGlyphs = false;
+      // start fireworks under the quote
+      createFireworks(24);
+      if (quoteTimer) clearTimeout(quoteTimer);
+      // when the quote duration finishes, stop the quote and restart the full animation from the start
+      quoteTimer = setTimeout(function () {
+        quoteActive = false;
+        quoteTimer = null;
+        drawLetterGlyphs = true;
+        createLetters();
+      }, opts.quoteDuration);
     }
 
-    // draw quote overlay if active
-    if (quoteActive) {
-      var elapsed = performance.now() - quoteStart;
+    // draw quote overlay if active (with alpha fade)
+    var elapsed = quoteActive ? (performance.now() - quoteStart) : 0;
+    // fade in/out logic
+    if (quoteActive) quoteAlpha = Math.min(1, quoteAlpha + 0.04);
+    else quoteAlpha = Math.max(0, quoteAlpha - 0.04);
+
+    if (quoteAlpha > 0.001) {
       ctx.save();
       ctx.translate(hw, hh);
-      ctx.fillStyle = 'rgba(255,240,210,0.96)';
+      ctx.globalAlpha = quoteAlpha;
+      ctx.fillStyle = 'rgba(255,240,210,0.98)';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = '20px Verdana';
+      ctx.font = '20px "Segoe UI", Verdana, sans-serif';
+
       var maxWidth = Math.max(200, Math.min(w * 0.8, 900));
       var words = opts.quoteText.split(' ');
       var lines = [];
@@ -345,7 +380,7 @@
         var seg = opts.quoteDuration / names.length;
         var idx = Math.min(names.length - 1, Math.floor(elapsed / Math.max(1, seg)));
         var name = names[idx];
-        ctx.font = opts.charSize + 'px Verdana';
+        ctx.font = opts.charSize + 'px "Segoe UI", Verdana, sans-serif';
         ctx.fillStyle = 'rgba(255,245,220,0.98)';
         ctx.shadowColor = 'rgba(0,0,0,0.6)';
         ctx.shadowBlur = 14;
@@ -357,6 +392,8 @@
           var rawSize = Math.floor(opts.charSize * (opts.friendPhotoScale || 1.2));
           var photoSize = Math.min(opts.friendPhotoMax || 120, Math.max(opts.friendPhotoMin || 72, rawSize));
           var photoY = startY - photoSize - 12;
+
+          // draw clipped avatar
           ctx.save();
           ctx.beginPath();
           ctx.arc(0, photoY + photoSize / 2, photoSize / 2, 0, Tau);
@@ -364,13 +401,19 @@
           ctx.clip();
           ctx.drawImage(img, -photoSize / 2, photoY, photoSize, photoSize);
           ctx.restore();
+
+          // golden border with glow
           ctx.beginPath();
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-          ctx.arc(0, photoY + photoSize / 2, photoSize / 2, 0, Tau);
+          ctx.lineWidth = Math.max(2, Math.round(photoSize * 0.06));
+          ctx.strokeStyle = 'rgba(255,215,90,0.95)';
+          ctx.shadowBlur = 20;
+          ctx.shadowColor = 'rgba(255,200,80,0.6)';
+          ctx.arc(0, photoY + photoSize / 2, photoSize / 2 - (ctx.lineWidth/2), 0, Tau);
           ctx.stroke();
+          ctx.shadowBlur = 0;
         }
       }
+
       ctx.restore();
     }
   }
@@ -378,7 +421,72 @@
   // setup
   setSize();
   window.addEventListener('resize', function(){ window.requestAnimationFrame(function(){ setSize(); createLetters(); }); }, { passive: true });
-  createLetters();
-  animate();
+  // handle orientation changes on mobile
+  window.addEventListener('orientationchange', function(){ window.requestAnimationFrame(function(){ setSize(); createLetters(); }); }, { passive: true });
+  // unlock audio/context on first touch (mobile browsers often require user gesture)
+  function unlockAudioOnUserGesture() {
+    try {
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    } catch (e) {}
+    window.removeEventListener('touchstart', unlockAudioOnUserGesture);
+    window.removeEventListener('mousedown', unlockAudioOnUserGesture);
+  }
+  window.addEventListener('touchstart', unlockAudioOnUserGesture, { passive: true });
+  window.addEventListener('mousedown', unlockAudioOnUserGesture, { passive: true });
+  // mute toggle wiring
+  const muteBtn = document.getElementById('mute-toggle');
+  if (muteBtn) {
+    muteBtn.addEventListener('click', function () {
+      isMuted = !isMuted;
+      muteBtn.setAttribute('aria-pressed', isMuted ? 'true' : 'false');
+      muteBtn.textContent = isMuted ? '🔇' : '🔊';
+      // pause any currently playing audio
+      try { if (isMuted && audioCtx && audioCtx.state === 'running') audioCtx.suspend(); else if (!isMuted && audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch (e){}
+      try { if (isMuted) window.speechSynthesis.cancel(); } catch(e){}
+    }, { passive: true });
+  }
+
+  // Insert YouTube iframe (autoplay muted) to play background music
+  (function insertYT() {
+    const container = document.getElementById('yt-player');
+    if (!container) return;
+    const vid = container.getAttribute('data-video-id') || 'B6aHSSucL_s';
+    // build src with enablejsapi to allow future postMessage control
+    const src = 'https://www.youtube.com/embed/' + vid + '?autoplay=1&loop=1&playlist=' + vid + '&mute=1&controls=0&rel=0&enablejsapi=1';
+    const ifr = document.createElement('iframe');
+    ifr.src = src;
+    ifr.width = '1'; ifr.height = '1'; ifr.setAttribute('allow', 'autoplay; encrypted-media');
+    ifr.setAttribute('frameborder', '0');
+    container.appendChild(ifr);
+
+    // when the user unmutes via mute button, try to unmute the iframe via postMessage to the YouTube player
+    function post(command) {
+      try { ifr.contentWindow.postMessage(JSON.stringify(command), '*'); } catch (e) {}
+    }
+    // listen to mute button changes and sync iframe
+    if (muteBtn) {
+      muteBtn.addEventListener('click', function () {
+        if (isMuted) {
+          // mute player
+          post({ event: 'command', func: 'mute', args: [] });
+        } else {
+          // unmute and play
+          post({ event: 'command', func: 'unMute', args: [] });
+          post({ event: 'command', func: 'playVideo', args: [] });
+        }
+      }, { passive: true });
+    }
+  })();
+
+  // Wait for images (and a short timeout). Show preloader until ready.
+  const preloaderEl = document.getElementById('preloader');
+  waitForImages(3500).then(function(loaded) {
+    if (preloaderEl) preloaderEl.setAttribute('aria-hidden', 'true');
+    if (preloaderEl && preloaderEl.parentNode) preloaderEl.parentNode.removeChild(preloaderEl);
+    // start animation after a tiny delay so fade feels smooth
+    createLetters();
+    animate();
+  });
 
 })();

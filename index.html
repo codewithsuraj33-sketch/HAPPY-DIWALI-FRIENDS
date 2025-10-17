@@ -8,10 +8,21 @@
 </head>
 <body>
   <canvas id="c" aria-label="Diwali animation"></canvas>
+  <div id="preloader" aria-hidden="false">
+    <div class="loader">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="loading-text">Preparing Diwali surprise...</div>
+    </div>
+  </div>
+
+  <button id="mute-toggle" aria-pressed="false" title="Mute / Unmute sound">🔊</button>
+
   <p>
     <a href="#" target="_blank">Happy Diwali ✨</a>
     <span>• Wished by Suraj Adhikary</span>
   </p>
+  <audio id="background-music" src="friends bgm.mp3" autoplay loop></audio>
+
   <script src="script.js"></script>
 </body>
 </html>

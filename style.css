@@ -5,6 +5,10 @@ html, body {
   font-family: Verdana, Geneva, Tahoma, sans-serif;
   background: radial-gradient(circle at 20% 10%, #2b0a00 0%, #12040a 60%, #0b0710 100%);
   overflow: hidden;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 /* canvas fills viewport */
@@ -14,17 +18,21 @@ canvas {
   display: block;
   width: 100%;
   height: 100%;
+  touch-action: none;
+  background: transparent;
 }
 
 /* small footer/credit */
 p {
   margin: 0;
   position: absolute;
-  left: 12px;
-  bottom: 12px;
+  left: env(safe-area-inset-left, 12px);
+  bottom: env(safe-area-inset-bottom, 12px);
   color: #ffdca8;
   font-size: 16px;
   text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+  z-index: 40;
+  pointer-events: auto;
 }
 p a {
   color: #fff3d9;
@@ -32,6 +40,23 @@ p a {
   font-weight: 700;
 }
 p span { font-size: 12px; color: #ffdca8; opacity: 0.9; margin-left: 8px; }
+
+#music-toggle {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+#music-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+}
 
 @media (max-width: 768px) {
   p {
@@ -41,3 +66,61 @@ p span { font-size: 12px; color: #ffdca8; opacity: 0.9; margin-left: 8px; }
     font-size: 10px;
   }
 }
+
+@media (max-width: 768px) {
+  p {
+    font-size: 12px;
+    left: env(safe-area-inset-left, 8px);
+    right: env(safe-area-inset-right, 8px);
+    bottom: env(safe-area-inset-bottom, 8px);
+  }
+  p span {
+    font-size: 10px;
+  }
+  body {
+    background-position: center top;
+  }
+}
+
+/* Preloader overlay */
+#preloader {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(5,3,2,0.85) 0%, rgba(3,1,6,0.9) 100%);
+  z-index: 120;
+  color: #fff;
+}
+#preloader .loader { text-align: center; }
+#preloader .spinner {
+  width: 56px; height: 56px; border-radius: 50%;
+  border: 4px solid rgba(255,255,255,0.08);
+  border-top-color: #ffdd78; animation: spin 1s linear infinite; margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#preloader .loading-text { font-size: 14px; color: #ffeecb; }
+
+/* floating mute button */
+#mute-toggle {
+  position: fixed; right: 14px; top: 14px; z-index: 80; padding: 8px 10px; border-radius: 999px; border: none; background: rgba(0,0,0,0.35);
+  color: #fff; font-size: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.5); cursor: pointer;
+}
+#mute-toggle[aria-pressed="true"] { background: rgba(0,0,0,0.65); }
+
+/* Quote fade-in/out helper for canvas overlay (used via script alpha) */
+.quote-fade {
+  transition: opacity 0.45s ease; opacity: 0;
+}
+.quote-fade.show { opacity: 1; }
+
+/* subtle vignette to focus center */
+body::after {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 10;
+  background: radial-gradient(60% 50% at 50% 40%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.6) 100%);
+}
+
+/* hidden youtube player container (iframe is controlled via JS) */
+#yt-player { position: fixed; width: 1px; height: 1px; overflow: hidden; left: -9999px; top: -9999px; }
