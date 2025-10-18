@@ -64,6 +64,17 @@
     ctx.scale(DPR, DPR);
 
     w = cssW; h = cssH; hw = w/2; hh = h/2;
+
+    if (w < 768) { // Mobile devices
+        opts.charSize = 28;
+        opts.charSpacing = 38;
+        opts.lineHeight = 35;
+    } else { // Desktop
+        opts.charSize = 44;
+        opts.charSpacing = 62;
+        opts.lineHeight = 72;
+    }
+
     ctx.font = `${opts.charSize}px Verdana`;
     calc.totalWidth = opts.charSpacing * Math.max(...opts.strings.map(s => s.length));
   }
