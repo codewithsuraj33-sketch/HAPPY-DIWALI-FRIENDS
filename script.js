@@ -23,8 +23,8 @@
   const opts = {
     strings: ['HAPPY', 'DIWALI FRIENDS'],
     quoteText: '✨ “May this Diwali light up our friendship with joy, laughter, and endless memories. Wishing you a sparkling and happy Diwali, my friend!” 🪔💛',
-    friendNames: ['Sudeep Sarkar','Jeet Sakhari','Ranjan kumar Patra','Subhashish Behera', 'TO MY NEW FRIENDS AND FUTURE FRIENDS OR CLASSMATE'],
-    quoteDuration: 22000,
+    friendNames: ['Sudeep Sarkar','Jeet Sakhari','Ranjan kumar Patra','Subhashish Behera', 'Dhiraj Gosh', 'TO MY NEW FRIENDS AND FUTURE FRIENDS OR CLASSMATE'],
+    quoteDuration: 25000,
     friendPhotoScale: 2.2,
     friendPhotoMin: 96,
     friendPhotoMax: 320,
@@ -411,8 +411,8 @@
         var nameY = startY + totalH + 24 + opts.charSize / 2;
         
         if (idx === names.length - 1) {
-          ctx.fillText('TO MY NEW FRIENDS AND', 0, nameY - 15);
-          ctx.fillText('FUTURE FRIENDS OR CLASSMATE', 0, nameY + 15);
+          ctx.fillText('TO MY NEW FRIENDS AND', 0, nameY - opts.lineHeight / 4);
+          ctx.fillText('FUTURE FRIENDS OR CLASSMATE', 0, nameY + opts.lineHeight / 4);
         } else {
           ctx.fillText(name, 0, nameY);
         }
@@ -455,7 +455,7 @@
       }
 
       // Show surprise link based on timing
-      const showSurpriseTime = (opts.friendNames.length - 1) * (opts.quoteDuration / opts.friendNames.length);
+      const showSurpriseTime = (opts.friendNames.length - 1) * 3000;
       if (elapsed > showSurpriseTime && !surpriseLinkShown) {
         if (surpriseLink) {
           surpriseLink.style.display = 'block';
@@ -475,6 +475,10 @@
   // unlock audio/context on first touch (mobile browsers often require user gesture)
   function unlockAudioOnUserGesture() {
     try {
+      const music = document.getElementById('background-music');
+      if (music && music.paused) {
+        music.play();
+      }
       if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     } catch (e) {}
@@ -490,6 +494,12 @@
       isMuted = !isMuted;
       muteBtn.setAttribute('aria-pressed', isMuted ? 'true' : 'false');
       muteBtn.textContent = isMuted ? '🔇' : '🔊';
+
+      const music = document.getElementById('background-music');
+      if (music) {
+        music.muted = isMuted;
+      }
+
       // pause any currently playing audio
       try { if (isMuted && audioCtx && audioCtx.state === 'running') audioCtx.suspend(); else if (!isMuted && audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch (e){}
       try { if (isMuted) window.speechSynthesis.cancel(); } catch(e){}
