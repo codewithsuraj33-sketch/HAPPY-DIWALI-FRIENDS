@@ -124,3 +124,50 @@ body::after {
 
 /* hidden youtube player container (iframe is controlled via JS) */
 #yt-player { position: fixed; width: 1px; height: 1px; overflow: hidden; left: -9999px; top: -9999px; }
+
+/* Surprise Link Styling */
+#surprise-link {
+  display: none;
+  position: absolute;
+  bottom: 60px; /* Position it above the existing footer text */
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  z-index: 50;
+  animation: pulse-glow 2.5s infinite;
+}
+
+#surprise-link a {
+  color: #ffebcd; /* A light, warm color that fits the theme */
+  font-size: 24px;
+  font-weight: bold;
+  text-decoration: none;
+  text-shadow: 0 0 5px #ffc87c, 0 0 10px #ffc87c, 0 0 20px #ffc87c, 0 0 30px #ff8c00, 0 0 40px #ff8c00;
+}
+
+@keyframes pulse-glow {
+  0% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Adjust for mobile */
+@media (max-width: 768px) {
+  #surprise-link {
+    bottom: 50px;
+  }
+  #surprise-link a {
+    font-size: 18px;
+  }
+}

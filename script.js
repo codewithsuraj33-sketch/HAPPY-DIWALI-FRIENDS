@@ -23,8 +23,8 @@
   const opts = {
     strings: ['HAPPY', 'DIWALI FRIENDS'],
     quoteText: '✨ “May this Diwali light up our friendship with joy, laughter, and endless memories. Wishing you a sparkling and happy Diwali, my friend!” 🪔💛',
-    friendNames: ['Sudeep Sarkar','Jeet Sakhari','Ranjan kumar Patra','Subhashish Behera'],
-    quoteDuration: 15000,
+    friendNames: ['Sudeep Sarkar','Jeet Sakhari','Ranjan kumar Patra','Subhashish Behera', 'TO MY NEW FRIENDS AND FUTURE FRIENDS OR CLASSMATE'],
+    quoteDuration: 22000,
     friendPhotoScale: 2.2,
     friendPhotoMin: 96,
     friendPhotoMax: 320,
@@ -77,6 +77,8 @@
   // control whether letter glyphs (HAPPY / DIWALI FRIENDS) are drawn
   let drawLetterGlyphs = true;
    let isMuted = false;
+  let surpriseLinkShown = false;
+  const surpriseLink = document.getElementById('surprise-link');
 
   // Audio helpers: speech synthesis and small WebAudio firework sound
   let audioCtx = null;
@@ -347,6 +349,13 @@
         quoteActive = false;
         quoteTimer = null;
         drawLetterGlyphs = true;
+
+        // Hide and reset surprise link
+        if (surpriseLink) {
+          surpriseLink.style.display = 'none';
+        }
+        surpriseLinkShown = false;
+
         createLetters();
       }, opts.quoteDuration);
     }
@@ -388,18 +397,38 @@
 
       var names = opts.friendNames || [];
       if (names.length > 0) {
-        var seg = opts.quoteDuration / names.length;
-        var idx = Math.min(names.length - 1, Math.floor(elapsed / Math.max(1, seg)));
+        var seg = 3000;
+        var idx = Math.floor(elapsed / seg);
+        if (idx >= names.length - 1) {
+            idx = names.length - 1;
+        }
+
         var name = names[idx];
         ctx.font = opts.charSize + 'px "Segoe UI", Verdana, sans-serif';
         ctx.fillStyle = 'rgba(255,245,220,0.98)';
         ctx.shadowColor = 'rgba(0,0,0,0.6)';
         ctx.shadowBlur = 14;
         var nameY = startY + totalH + 24 + opts.charSize / 2;
-        ctx.fillText(name, 0, nameY);
+        
+        if (idx === names.length - 1) {
+          ctx.fillText('TO MY NEW FRIENDS AND', 0, nameY - 15);
+          ctx.fillText('FUTURE FRIENDS OR CLASSMATE', 0, nameY + 15);
+        } else {
+          ctx.fillText(name, 0, nameY);
+        }
 
         var img = friendImgs[idx];
-        if (img && img.complete) {
+        if (idx === names.length - 1) {
+          var rawSize = Math.floor(opts.charSize * (opts.friendPhotoScale || 1.2));
+          var photoSize = Math.min(opts.friendPhotoMax || 120, Math.max(opts.friendPhotoMin || 72, rawSize));
+          var photoY = startY - photoSize - 12;
+          ctx.font = (photoSize / 2) + 'px "Segoe UI", Verdana, sans-serif';
+          ctx.fillStyle = 'rgba(255,245,220,0.98)';
+          ctx.shadowColor = 'rgba(0,0,0,0.6)';
+          ctx.shadowBlur = 14;
+          ctx.fillText('HAPPY', 0, photoY + photoSize / 2 - (photoSize / 4));
+          ctx.fillText('DIWALI', 0, photoY + photoSize / 2 + (photoSize / 4));
+        } else if (img && img.complete) {
           var rawSize = Math.floor(opts.charSize * (opts.friendPhotoScale || 1.2));
           var photoSize = Math.min(opts.friendPhotoMax || 120, Math.max(opts.friendPhotoMin || 72, rawSize));
           var photoY = startY - photoSize - 12;
@@ -423,6 +452,15 @@
           ctx.stroke();
           ctx.shadowBlur = 0;
         }
+      }
+
+      // Show surprise link based on timing
+      const showSurpriseTime = (opts.friendNames.length - 1) * (opts.quoteDuration / opts.friendNames.length);
+      if (elapsed > showSurpriseTime && !surpriseLinkShown) {
+        if (surpriseLink) {
+          surpriseLink.style.display = 'block';
+        }
+        surpriseLinkShown = true;
       }
 
       ctx.restore();
