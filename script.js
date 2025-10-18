@@ -187,6 +187,17 @@
     ctx.setTransform(1,0,0,1,0,0);
     ctx.scale(DPR, DPR);
     w = cssW; h = cssH; hw = w/2; hh = h/2;
+
+    if (w < 768) { // Mobile devices
+        opts.charSize = 28;
+        opts.charSpacing = 38;
+        opts.lineHeight = 45;
+    } else { // Desktop
+        opts.charSize = 44;
+        opts.charSpacing = 62;
+        opts.lineHeight = 72;
+    }
+
     ctx.font = opts.charSize + 'px Verdana';
     const longest = Math.max.apply(null, opts.strings.map(function(s){ return s.length; }));
     calc.totalWidth = opts.charSpacing * longest;
