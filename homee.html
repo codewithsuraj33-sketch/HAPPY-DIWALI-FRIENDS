@@ -13,6 +13,8 @@
             background-color: #f0f0f0;
             font-family: sans-serif;
             text-align: center;
+            margin: 0;
+            padding: 0;
         }
         .container {
             padding: 20px;
@@ -30,6 +32,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
+            transition: all 0.3s ease;
         }
         #yesBtn {
             background-color: #4CAF50;
@@ -38,39 +41,7 @@
         #noBtn {
             background-color: #f44336;
             color: white;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 400px;
-            text-align: center;
-            border-radius: 10px;
-        }
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
+            position: absolute;
         }
     </style>
 </head>
@@ -83,35 +54,30 @@
         </div>
     </div>
 
-    <div id="myModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <p>YOU CANNOT SEE THIS SUPRISE UNTILL CLICK ON THE YES BUTTON</p>
-        </div>
-    </div>
-
     <script>
         document.getElementById('yesBtn').addEventListener('click', function() {
             window.location.href = 'index.html';
         });
 
-        var modal = document.getElementById('myModal');
-        var btn = document.getElementById("noBtn");
-        var span = document.getElementsByClassName("close")[0];
+        const noBtn = document.getElementById('noBtn');
 
-        btn.onclick = function() {
-            modal.style.display = "block";
-        }
+        noBtn.addEventListener('mouseover', function() {
+            const h = window.innerHeight - 50;
+            const w = window.innerWidth - 50;
+            const newH = Math.floor(Math.random() * h);
+            const newW = Math.floor(Math.random() * w);
+            noBtn.style.top = newH + 'px';
+            noBtn.style.left = newW + 'px';
+        });
 
-        span.onclick = function() {
-            modal.style.display = "none";
-        }
-
-        window.onclick = function(event) {
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        }
+        noBtn.addEventListener('touchstart', function() {
+            const h = window.innerHeight - 50;
+            const w = window.innerWidth - 50;
+            const newH = Math.floor(Math.random() * h);
+            const newW = Math.floor(Math.random() * w);
+            noBtn.style.top = newH + 'px';
+            noBtn.style.left = newW + 'px';
+        });
     </script>
 </body>
 </html>

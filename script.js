@@ -189,9 +189,9 @@
     w = cssW; h = cssH; hw = w/2; hh = h/2;
 
     if (w < 768) { // Mobile devices
-        opts.charSize = 28;
-        opts.charSpacing = 38;
-        opts.lineHeight = 45;
+        opts.charSize = 20;
+        opts.charSpacing = 25;
+        opts.lineHeight = 30;
     } else { // Desktop
         opts.charSize = 44;
         opts.charSpacing = 62;
