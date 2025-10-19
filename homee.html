@@ -1,83 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Friend Check</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f0f0;
-            font-family: sans-serif;
-            text-align: center;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            padding: 20px;
-            border-radius: 10px;
-            background-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            margin-bottom: 20px;
-        }
-        .buttons button {
-            padding: 10px 20px;
-            margin: 0 10px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-        #yesBtn {
-            background-color: #4CAF50;
-            color: white;
-        }
-        #noBtn {
-            background-color: #f44336;
-            color: white;
-            position: absolute;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Happy Diwali ✨</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>ARE YOU MY FRIEND OR NOT</h1>
-        <div class="buttons">
-            <button id="yesBtn">YES</button>
-            <button id="noBtn">NO</button>
-        </div>
+  <canvas id="c" aria-label="Diwali animation"></canvas>
+  <div id="preloader" aria-hidden="false">
+    <div class="loader">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="loading-text">Preparing Diwali surprise...</div>
     </div>
+  </div>
 
-    <script>
-        document.getElementById('yesBtn').addEventListener('click', function() {
-            window.location.href = 'index.html';
-        });
+  <button id="mute-toggle" aria-pressed="false" title="Mute / Unmute sound">🔊</button>
 
-        const noBtn = document.getElementById('noBtn');
+  <p>
+    <a href="#" target="_blank">Happy Diwali ✨</a>
+    <span>• Wished by Suraj Adhikary</span>
+  </p>
+  <h2 id="surprise-link"><a href="fireworks.html" target="_blank">Click here for your surprise</a></h2>
+  <audio id="background-music" src="friends bgm.mp3" loop></audio>
 
-        noBtn.addEventListener('mouseover', function() {
-            const h = window.innerHeight - 50;
-            const w = window.innerWidth - 50;
-            const newH = Math.floor(Math.random() * h);
-            const newW = Math.floor(Math.random() * w);
-            noBtn.style.top = newH + 'px';
-            noBtn.style.left = newW + 'px';
-        });
-
-        noBtn.addEventListener('touchstart', function() {
-            const h = window.innerHeight - 50;
-            const w = window.innerWidth - 50;
-            const newH = Math.floor(Math.random() * h);
-            const newW = Math.floor(Math.random() * w);
-            noBtn.style.top = newH + 'px';
-            noBtn.style.left = newW + 'px';
-        });
-    </script>
+  <script src="script.js"></script>
 </body>
 </html>
